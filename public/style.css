@@ -315,6 +315,30 @@ body {
   font-weight: 600;
 }
 
+.hints-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hint-difficulty-select {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  height: 32px;
+  padding: 0 8px;
+  font-size: 0.85rem;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.hint-difficulty-select:hover,
+.hint-difficulty-select:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
 #hint-btn {
   background: transparent;
   border: 1px solid var(--border);
@@ -427,6 +451,11 @@ th {
 
 .row-correct {
   outline: 2px solid #6fcf97;
+}
+
+.row-hint {
+  font-style: italic;
+  color: var(--text-dim);
 }
 
 /* Modal */

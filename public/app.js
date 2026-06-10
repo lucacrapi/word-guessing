@@ -32,8 +32,8 @@ let guesses = []; // { word, score, time }
 let guessedWords = new Set();
 let won = false;
 let gaveUp = false;
-let hintsRevealed = 0;
-let relatedWords = null; // words ranked by similarity to target, computed lazily for hints
+let revealedHints = []; // { word, score, time } — hints shown so far, in reveal order
+let hintDifficulty = localStorage.getItem("wordcue-hint-difficulty") === "hard" ? "hard" : "easy";
 let startTime = null;
 let activeSuggestionIndex = -1;
 
@@ -50,6 +50,7 @@ const els = {
   hintBtn: document.getElementById("hint-btn"),
   hintCount: document.getElementById("hint-count"),
   hintsList: document.getElementById("hints-list"),
+  hintDifficulty: document.getElementById("hint-difficulty"),
   newGameBtn: document.getElementById("new-game-btn"),
   howToPlayBtn: document.getElementById("how-to-play-btn"),
   closeModalBtn: document.getElementById("close-modal-btn"),
@@ -73,6 +74,7 @@ init();
 
 async function init() {
   pruneDailyStorage();
+  els.hintDifficulty.value = hintDifficulty;
   await loadLanguage(currentLang);
   updateModeUI();
   await newGame();
@@ -142,9 +144,9 @@ function saveDailyState() {
   if (mode !== "daily") return;
   const data = {
     guesses: guesses.map((g) => ({ word: g.word, score: g.score, time: g.time.toISOString() })),
+    revealedHints: revealedHints.map((h) => ({ word: h.word, score: h.score, time: h.time.toISOString() })),
     won,
     gaveUp,
-    hintsRevealed,
   };
   localStorage.setItem(dailyStorageKey(currentLang, todayDateStr()), JSON.stringify(data));
 }
@@ -162,7 +164,7 @@ function loadDailyState() {
 
   guesses = (data.guesses || []).map((g) => ({ word: g.word, score: g.score, time: new Date(g.time) }));
   guessedWords = new Set(guesses.map((g) => g.word));
-  hintsRevealed = data.hintsRevealed || 0;
+  revealedHints = (data.revealedHints || []).map((h) => ({ word: h.word, score: h.score, time: new Date(h.time) }));
   renderHintsList();
 
   if (data.won) {
@@ -193,6 +195,7 @@ function bindEvents() {
   els.form.addEventListener("submit", onGuess);
   els.newGameBtn.addEventListener("click", newGame);
   els.hintBtn.addEventListener("click", revealHint);
+  els.hintDifficulty.addEventListener("change", onHintDifficultyChange);
   els.hideColdToggle.addEventListener("change", renderHistory);
   els.giveUpBtn.addEventListener("click", giveUp);
   els.languageSelect.addEventListener("change", onLanguageChange);
@@ -214,6 +217,12 @@ function bindEvents() {
       newGame();
     }
   });
+}
+
+function onHintDifficultyChange() {
+  hintDifficulty = els.hintDifficulty.value;
+  localStorage.setItem("wordcue-hint-difficulty", hintDifficulty);
+  renderHintsList();
 }
 
 async function onLanguageChange() {
@@ -258,8 +267,7 @@ async function newGame() {
   guessedWords = new Set();
   won = false;
   gaveUp = false;
-  hintsRevealed = 0;
-  relatedWords = null;
+  revealedHints = [];
   startTime = Date.now();
 
   els.input.value = "";
@@ -413,26 +421,33 @@ function renderHistory() {
   els.historyBody.innerHTML = "";
   els.guessTotal.textContent = guesses.length;
 
-  // Most recent guess first
-  const ordered = [...guesses].slice().reverse();
+  const combined = [
+    ...guesses.map((g) => ({ ...g, isHint: false })),
+    ...revealedHints.map((h) => ({ ...h, isHint: true })),
+  ];
+
+  // Number entries in chronological order, then show most recent first.
+  const chronological = combined.slice().sort((a, b) => a.time - b.time);
+  chronological.forEach((g, i) => (g.idx = i + 1));
+  const ordered = chronological.slice().reverse();
   const visible = hideCold ? ordered.filter((g) => g.score >= 25) : ordered;
 
-  els.historyEmpty.classList.toggle("hidden", guesses.length > 0);
-  if (guesses.length > 0 && visible.length === 0) {
+  els.historyEmpty.classList.toggle("hidden", combined.length > 0);
+  if (combined.length > 0 && visible.length === 0) {
     els.historyEmpty.classList.remove("hidden");
     els.historyEmpty.textContent = "All guesses so far are cold. Uncheck \"Hide Cold\" to see them.";
-  } else if (guesses.length === 0) {
+  } else if (combined.length === 0) {
     els.historyEmpty.textContent = 'No guesses yet. Try a common word like "dog" or "happy".';
   }
 
   for (const g of visible) {
-    const idx = guesses.indexOf(g) + 1;
     const tier = getTier(g.score);
     const tr = document.createElement("tr");
     if (g.word === target) tr.classList.add("row-correct");
+    if (g.isHint) tr.classList.add("row-hint");
     tr.innerHTML = `
-      <td>${idx}</td>
-      <td>${escapeHtml(displayWord(g.word))}</td>
+      <td>${g.idx}</td>
+      <td>${g.isHint ? "💡 " : ""}${escapeHtml(displayWord(g.word))}</td>
       <td><span class="score-badge ${tier.className}">${g.score}</span></td>
       <td><span class="temp-label">${tier.emoji} ${tier.label}</span></td>
       <td>${formatTime(g.time)}</td>
@@ -446,34 +461,40 @@ function formatTime(date) {
 }
 
 function revealHint() {
-  const related = getRelatedWords();
-  if (hintsRevealed >= related.length) return;
+  const next = getNextHintCandidate();
+  if (!next) return;
 
-  hintsRevealed++;
+  revealedHints.push({ word: next, score: scoreGuess(next), time: new Date() });
   renderHintsList();
+  renderHistory();
   saveDailyState();
 }
 
 function renderHintsList() {
-  const related = getRelatedWords();
-
   els.hintsList.innerHTML = "";
-  for (let i = 0; i < hintsRevealed; i++) {
+  revealedHints.forEach((hint, i) => {
     const li = document.createElement("li");
-    li.textContent = `Hint ${i + 1}: A closely related word is "${displayWord(related[i])}".`;
+    li.textContent = `Hint ${i + 1}: A closely related word is "${displayWord(hint.word)}".`;
     els.hintsList.appendChild(li);
-  }
+  });
 
-  els.hintCount.textContent = hintsRevealed;
-  els.hintBtn.disabled = won || hintsRevealed >= related.length;
+  els.hintCount.textContent = revealedHints.length;
+  els.hintBtn.disabled = won || !getNextHintCandidate();
 }
 
+// Hints are limited to words below a similarity-score ceiling, so they nudge
+// without giving the answer away. "Easy" allows closer (more revealing)
+// words than "Hard".
 function getRelatedWords() {
-  if (relatedWords) return relatedWords;
-  relatedWords = words
-    .filter((w) => w !== target)
+  const threshold = hintDifficulty === "easy" ? 60 : 30;
+  return words
+    .filter((w) => w !== target && scoreGuess(w) < threshold)
     .sort((a, b) => cosineSimilarity(wordVectors[b], wordVectors[target]) - cosineSimilarity(wordVectors[a], wordVectors[target]));
-  return relatedWords;
+}
+
+function getNextHintCandidate() {
+  const related = getRelatedWords();
+  return related.find((w) => !revealedHints.some((h) => h.word === w));
 }
 
 function escapeHtml(str) {

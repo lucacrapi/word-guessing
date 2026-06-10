@@ -62,7 +62,13 @@
     <section class="hints card">
       <div class="hints-header">
         <span>Hints</span>
-        <button id="hint-btn" type="button">Reveal a hint (<span id="hint-count">0</span>)</button>
+        <div class="hints-controls">
+          <select id="hint-difficulty" class="hint-difficulty-select" title="Hint difficulty">
+            <option value="easy">Easy hints</option>
+            <option value="hard">Hard hints</option>
+          </select>
+          <button id="hint-btn" type="button">Reveal a hint (<span id="hint-count">0</span>)</button>
+        </div>
       </div>
       <ul id="hints-list" class="hints-list"></ul>
     </section>

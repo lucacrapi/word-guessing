@@ -73,11 +73,26 @@ export const ABBREVIATIONS = [
   "url","vip","cia","nasa","mhz","ghz","faqs",
 ];
 
+// Personal names that slipped into the vocabulary because WordNet tags them
+// as common nouns via an unrelated sense (e.g. "john" = toilet, "george" = a
+// coin). Removed by scripts/remove-given-names.mjs; kept here so future runs
+// of build-words.mjs filter them too. Words with a genuine common-word sense
+// (e.g. "will", "grace", "dawn", "robin", "ruby") are intentionally not listed.
+export const REMOVE_NAMES = [
+  "abraham","adrian","anna","anne","ben","beth","billy","calvin","carlos","caroline","carter","charlotte","clark",
+  "curtis","dana","david","edgar","franklin","frederick","george","gilbert","glenn","harvey","howard","isaac",
+  "jackson","james","joel","john","joseph","julian","ken","leo","leon","lloyd","logan","lucas","luke","lucy",
+  "madison","marshall","mary","michael","mitchell","morgan","nelson","norman","oscar","owen","perry","rick","ron",
+  "rosa","ross","ruth","sally","sam","shannon","sierra","simon","solomon","spencer","stanley","stuart","taylor",
+  "ted","thomas","tiffany","tom","todd","tracy","wesley",
+];
+
 export const BLOCKLIST = new Set([
   ...COUNTRIES,
   ...US_STATES,
   ...NATIONALITIES,
   ...CITIES,
   ...GIVEN_NAMES,
+  ...REMOVE_NAMES,
   ...ABBREVIATIONS,
 ]);

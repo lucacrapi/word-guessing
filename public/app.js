@@ -49,7 +49,6 @@ const els = {
   hideColdToggle: document.getElementById("hide-cold-toggle"),
   hintBtn: document.getElementById("hint-btn"),
   hintCount: document.getElementById("hint-count"),
-  hintsList: document.getElementById("hints-list"),
   hintDifficulty: document.getElementById("hint-difficulty"),
   newGameBtn: document.getElementById("new-game-btn"),
   howToPlayBtn: document.getElementById("how-to-play-btn"),
@@ -274,7 +273,6 @@ async function newGame() {
   enableInputs();
   els.status.textContent = "Start by guessing a common word.";
   els.status.className = "status";
-  els.hintsList.innerHTML = "";
   els.hintCount.textContent = "0";
   els.winModal.classList.add("hidden");
   hideAutocomplete();
@@ -471,13 +469,6 @@ function revealHint() {
 }
 
 function renderHintsList() {
-  els.hintsList.innerHTML = "";
-  revealedHints.forEach((hint, i) => {
-    const li = document.createElement("li");
-    li.textContent = `Hint ${i + 1}: A closely related word is "${displayWord(hint.word)}".`;
-    els.hintsList.appendChild(li);
-  });
-
   els.hintCount.textContent = revealedHints.length;
   els.hintBtn.disabled = won || !getNextHintCandidate();
 }

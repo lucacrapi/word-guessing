@@ -18,7 +18,9 @@ const DAILY_FILES = {
 
 const langCache = {}; // { langCode: { word: [vector...] } }
 const dailyCache = {}; // { langCode: { epoch, words } }
+const nounCache = {}; // { langCode: Set<word> } — words capitalized when displayed
 let currentLang = "en";
+let nounSet = null;
 
 let mode = localStorage.getItem("wordcue-mode") === "practice" ? "practice" : "daily";
 
@@ -83,9 +85,23 @@ async function loadLanguage(lang) {
     const res = await fetch(LANGS[lang].file);
     langCache[lang] = await res.json();
   }
+  if (lang === "de" && !nounCache[lang]) {
+    const res = await fetch("data/nouns-de.json");
+    nounCache[lang] = new Set(await res.json());
+  }
   currentLang = lang;
   wordVectors = langCache[lang];
   words = Object.keys(wordVectors).sort();
+  nounSet = nounCache[lang] || null;
+}
+
+// German orthography capitalizes nouns; other languages and parts of speech
+// are displayed as stored (lowercase).
+function displayWord(word) {
+  if (nounSet && nounSet.has(word)) {
+    return word.charAt(0).toUpperCase() + word.slice(1);
+  }
+  return word;
 }
 
 async function loadDaily(lang) {
@@ -152,12 +168,12 @@ function loadDailyState() {
   if (data.won) {
     won = true;
     disableInputs();
-    setStatus(`You got it! The word was "${target}".`, "success");
+    setStatus(`You got it! The word was "${displayWord(target)}".`, "success");
   } else if (data.gaveUp) {
     won = true;
     gaveUp = true;
     disableInputs();
-    setStatus(`The word was "${target}".`, "");
+    setStatus(`The word was "${displayWord(target)}".`, "");
   }
 }
 
@@ -280,12 +296,12 @@ function onGuess(e) {
   if (!raw) return;
 
   if (!(raw in wordVectors)) {
-    setStatus(`"${raw}" isn't in the word list. Try another common word.`, "error");
+    setStatus(`"${displayWord(raw)}" isn't in the word list. Try another common word.`, "error");
     return;
   }
 
   if (guessedWords.has(raw)) {
-    setStatus(`You already guessed "${raw}".`, "error");
+    setStatus(`You already guessed "${displayWord(raw)}".`, "error");
     return;
   }
 
@@ -300,7 +316,7 @@ function onGuess(e) {
     handleWin();
   } else {
     const tier = getTier(score);
-    setStatus(`"${raw}" scores ${score}/100 — ${tier.label}`, "");
+    setStatus(`"${displayWord(raw)}" scores ${score}/100 — ${tier.label}`, "");
   }
 
   saveDailyState();
@@ -334,11 +350,11 @@ function getTier(score) {
 function handleWin() {
   won = true;
   disableInputs();
-  setStatus(`You got it! The word was "${target}".`, "success");
+  setStatus(`You got it! The word was "${displayWord(target)}".`, "success");
 
   const elapsedSec = Math.round((Date.now() - startTime) / 1000);
   els.winTitle.textContent = "🎉 You found it!";
-  els.winWord.textContent = target;
+  els.winWord.textContent = displayWord(target);
   els.winStats.textContent = `Solved in ${guesses.length} guess${guesses.length === 1 ? "" : "es"} (${elapsedSec}s).`;
   showWinModal();
 }
@@ -348,10 +364,10 @@ function giveUp() {
   won = true;
   gaveUp = true;
   disableInputs();
-  setStatus(`The word was "${target}".`, "");
+  setStatus(`The word was "${displayWord(target)}".`, "");
 
   els.winTitle.textContent = "🔍 Here's the answer";
-  els.winWord.textContent = target;
+  els.winWord.textContent = displayWord(target);
   els.winStats.textContent = `You made ${guesses.length} guess${guesses.length === 1 ? "" : "es"}.`;
   showWinModal();
   saveDailyState();
@@ -386,7 +402,7 @@ function renderBestGuess() {
   const best = guesses.reduce((a, b) => (b.score > a.score ? b : a));
   const tier = getTier(best.score);
   els.bestGuessContent.innerHTML = `
-    <span>${escapeHtml(best.word)}</span>
+    <span>${escapeHtml(displayWord(best.word))}</span>
     <span class="best-guess-score score-badge ${tier.className}">${best.score}</span>
   `;
   els.tempMarker.style.left = `${best.score}%`;
@@ -416,7 +432,7 @@ function renderHistory() {
     if (g.word === target) tr.classList.add("row-correct");
     tr.innerHTML = `
       <td>${idx}</td>
-      <td>${escapeHtml(g.word)}</td>
+      <td>${escapeHtml(displayWord(g.word))}</td>
       <td><span class="score-badge ${tier.className}">${g.score}</span></td>
       <td><span class="temp-label">${tier.emoji} ${tier.label}</span></td>
       <td>${formatTime(g.time)}</td>
@@ -444,7 +460,7 @@ function renderHintsList() {
   els.hintsList.innerHTML = "";
   for (let i = 0; i < hintsRevealed; i++) {
     const li = document.createElement("li");
-    li.textContent = `Hint ${i + 1}: A closely related word is "${related[i]}".`;
+    li.textContent = `Hint ${i + 1}: A closely related word is "${displayWord(related[i])}".`;
     els.hintsList.appendChild(li);
   }
 
@@ -488,10 +504,10 @@ function updateAutocomplete() {
   for (const word of matches) {
     const li = document.createElement("li");
     li.className = "autocomplete-item";
-    li.textContent = word;
+    li.textContent = displayWord(word);
     li.addEventListener("mousedown", (e) => {
       e.preventDefault(); // keep input focused so blur doesn't hide the list first
-      selectSuggestion(word);
+      selectSuggestion(displayWord(word));
     });
     els.autocompleteList.appendChild(li);
   }

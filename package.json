@@ -1,0 +1,18 @@
+{
+  "name": "heatcue-clone",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Daily AI word guessing game (hot/cold semantic distance)",
+  "type": "module",
+  "scripts": {
+    "generate-embeddings:en": "node scripts/generate-embeddings.mjs en",
+    "generate-embeddings:de": "node scripts/generate-embeddings.mjs de",
+    "generate-embeddings:la": "node scripts/generate-embeddings.mjs la",
+    "serve": "node scripts/serve.mjs"
+  },
+  "devDependencies": {
+    "@xenova/transformers": "^2.17.2",
+    "playwright": "^1.60.0",
+    "wordpos": "^2.1.0"
+  }
+}

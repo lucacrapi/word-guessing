@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Word Cue - AI Word Guessing Game | Hot or Cold Puzzle</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-icon">🔥</span>
+      <span class="brand-name">Word Cue</span>
+    </div>
+    <div class="topbar-actions">
+      <select id="language-select" class="language-select" title="Guessing language">
+        <option value="en">English</option>
+        <option value="de">German</option>
+        <option value="la">Latin</option>
+      </select>
+      <button id="how-to-play-btn" class="icon-btn" title="How to play">?</button>
+      <button id="new-game-btn" class="icon-btn" title="New game">↻</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="mode-tabs">
+      <button id="mode-daily-btn" class="mode-tab" data-mode="daily">📅 Daily Challenge</button>
+      <button id="mode-practice-btn" class="mode-tab" data-mode="practice">🎲 Practice</button>
+    </div>
+    <p id="tagline" class="tagline">Find the hidden word. A new word every game!</p>
+
+    <section class="best-guess card">
+      <div class="best-guess-label">Best guess so far</div>
+      <div id="best-guess-content" class="best-guess-content">
+        <span class="placeholder">No guesses yet</span>
+      </div>
+      <div class="temp-bar">
+        <div id="temp-bar-fill" class="temp-bar-fill"></div>
+        <div id="temp-bar-marker" class="temp-bar-marker"></div>
+      </div>
+    </section>
+
+    <section class="guess-form card">
+      <form id="guess-form" autocomplete="off">
+        <div class="input-wrapper">
+          <input
+            id="guess-input"
+            type="text"
+            placeholder="Enter a word..."
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <ul id="autocomplete-list" class="autocomplete-list hidden"></ul>
+        </div>
+        <button type="submit">Guess</button>
+      </form>
+      <div id="status" class="status">Start by guessing a common word.</div>
+      <button id="give-up-btn" type="button" class="text-btn">Give up &amp; reveal answer</button>
+    </section>
+
+    <section class="hints card">
+      <div class="hints-header">
+        <span>Hints</span>
+        <button id="hint-btn" type="button">Reveal a hint (<span id="hint-count">0</span>)</button>
+      </div>
+      <ul id="hints-list" class="hints-list"></ul>
+    </section>
+
+    <section class="history card">
+      <div class="history-header">
+        <span>Guess History (<span id="guess-total">0</span>)</span>
+        <label class="hide-cold">
+          <input type="checkbox" id="hide-cold-toggle" />
+          Hide Cold
+        </label>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Guess</th>
+            <th>Score</th>
+            <th>Temperature</th>
+            <th>Time</th>
+          </tr>
+        </thead>
+        <tbody id="history-body"></tbody>
+      </table>
+      <div id="history-empty" class="history-empty">No guesses yet. Try a common word like "dog" or "happy".</div>
+    </section>
+  </main>
+
+  <div id="how-to-play-modal" class="modal hidden">
+    <div class="modal-content card">
+      <button id="close-modal-btn" class="icon-btn close-btn" title="Close">✕</button>
+      <h2>How to Play Word Cue</h2>
+      <p>🎯 <strong>Objective</strong> &mdash; Guess the hidden word. The game tells you how "hot" or "cold" your guess is using AI semantic similarity.</p>
+      <h3>📅 Game modes</h3>
+      <ul>
+        <li><strong>Daily Challenge</strong> &mdash; one secret word per day, per language. Everyone gets the same word, and a new one appears at midnight UTC.</li>
+        <li><strong>Practice</strong> &mdash; play as many random rounds as you like.</li>
+      </ul>
+      <h3>🔥 How it works</h3>
+      <ul>
+        <li>Type a common word: a noun, adjective, or verb (person, place, thing, idea, quality, or action)</li>
+        <li>Get a similarity score from 0&ndash;100</li>
+        <li>Higher scores mean your guess is closer in meaning to the secret word</li>
+        <li>Use hints if you get stuck</li>
+      </ul>
+      <h3>📊 Score scale</h3>
+      <ul class="scale-list">
+        <li><span class="dot tier-veryhot"></span> 90&ndash;100: Very Hot! Almost there</li>
+        <li><span class="dot tier-hot"></span> 75&ndash;89: Hot! Getting closer</li>
+        <li><span class="dot tier-warm"></span> 50&ndash;74: Warm &mdash; right direction</li>
+        <li><span class="dot tier-cool"></span> 25&ndash;49: Cool &mdash; not quite</li>
+        <li><span class="dot tier-cold"></span> 0&ndash;24: Cold &mdash; way off!</li>
+      </ul>
+      <p class="modal-note">Inspired by <a href="https://heatcue.com/" target="_blank" rel="noopener">heatcue.com</a>. Guesses must be a common noun, adjective, or verb from the game's word list.</p>
+      <button id="got-it-btn" class="primary-btn">Got it! Let's Play</button>
+    </div>
+  </div>
+
+  <div id="win-modal" class="modal hidden">
+    <div class="modal-content card win-content">
+      <h2 id="win-title">🎉 You found it!</h2>
+      <p>The word was <strong id="win-word"></strong>.</p>
+      <p id="win-stats"></p>
+      <p id="win-daily-note" class="modal-note hidden">Come back tomorrow for a new daily word!</p>
+      <button id="play-again-btn" class="primary-btn">Play Again</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
